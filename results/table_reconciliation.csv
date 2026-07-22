@@ -1,0 +1,8 @@
+domain,ours_markets,le_markets,delta_pct_markets,ours_trades,le_trades,delta_pct_trades,ours_base_rate,le_base_rate
+Sports,55637,55637.0,0.0,43164667,43200000.0,-0.08,41.3,
+Crypto,76181,,,6493961,,,40.7,
+Politics,6609,6609.0,0.0,4929975,4900000.0,0.61,40.2,
+Finance,38058,,,4270597,,,37.7,
+Weather,26911,,,4419823,,,24.0,
+Entertainment,7212,,,1469864,,,38.0,
+TOTAL,210608,210608.0,0.0,64748887,64700000.0,0.08,38.1,38.1
