@@ -66,15 +66,40 @@ Streamed `zstd -dc --long=31 | tar -xf -` (no intermediate `data.tar`; the
 
 - `kalshi/trades/*.parquet`: **72,134,741** rows (Le's snapshot: ~64.7M; ours
   extends ~5 weeks past their 2025-12-31 cutoff — overshoot expected).
-- `kalshi/markets/*.parquet`: **7,682,445** rows — ~30 snapshots per ticker.
-  The archive appends repeated market snapshots (`_fetched_at` varies);
-  Le's pull evidently had ~1 row/ticker. **Dedup (Step 6) is mandatory** and
-  reproduces Le's effective single-snapshot semantics.
+- `kalshi/markets/*.parquet`: **7,682,445** rows — and Step 5 shows this is
+  **7,682,445 distinct tickers** (max 1 row/ticker). Kalshi genuinely listed
+  ~7.7M contracts (2025 hourly crypto/sports explosion); an earlier draft of
+  this note wrongly guessed "30 snapshots per ticker". Dedup in Step 6 is a
+  formal no-op on this archive but is still run as a guard.
 
 ## Step 5 findings (schema inspection)
 
-_To be filled from `src/inspect_data.py` output: exact dtypes, duplicate-snapshot
-count, duplicate-trade count, timezone verification, price-unit verification._
+Columns match Becker's `docs/SCHEMAS.md` exactly (markets: 20 cols incl.
+`no_bid`/`no_ask`/`volume_24h`; trades: 8 cols). Dtypes: prices/volumes BIGINT;
+`created_time`/`open_time`/`close_time` are **`TIMESTAMP WITH TIME ZONE`**
+(UTC instants; DuckDB renders them in the session tz), `_fetched_at` is naive
+`TIMESTAMP_NS`.
+
+**Silent killer 1 — duplicates: NONE.** 7,682,445 market rows = 7,682,445
+distinct tickers; 72,134,741 trade rows = 72,134,741 distinct `trade_id`s.
+Step 6 dedup is a no-op guard.
+
+**Silent killer 2 — timezone: verified UTC instants.** PRES-2024 (election
+winner) closes at `2025-01-20 12:03 ET` = inauguration noon, and its final
+trades print DJT at 99c minutes before close — externally correct. Trades span
+`2021-06-30` → **`2025-11-25`** (content end). NB: content ends BEFORE Le's
+2025-12-31 cutoff, so if Le pulled this same archive vintage their cutoff
+excludes nothing and Step 8 should reconcile near-exactly.
+
+**Silent killer 3 — price units: cents (0–99), confirmed.** `p = yes_price/100`.
+Caveat: 267,291 trades (0.37%) have `yes_price + no_price != 100` (incl.
+`yes_price = 0` rows); the primary `[0.05, 0.95]` filter drops these edges.
+
+**Status taxonomy** is richer than the docs: `finalized` (7,320,904; of which
+7,314,375 have result yes/no), `active` (328,865), `initialized` (20,536),
+`closed` (11,788), `inactive` (342), `determined` (9), `disputed` (1).
+Le's resolved-market filter is `status='finalized' AND result IN ('yes','no')`.
+Max `close_time` is 2099-08-01 (far-future placeholder on unresolved markets).
 
 ## Pipeline
 
