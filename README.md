@@ -101,6 +101,31 @@ Caveat: 267,291 trades (0.37%) have `yes_price + no_price != 100` (incl.
 Le's resolved-market filter is `status='finalized' AND result IN ('yes','no')`.
 Max `close_time` is 2099-08-01 (far-future placeholder on unresolved markets).
 
+## Step 10 findings (sanity suite — 33 tests green)
+
+- **DST bug found and fixed by test 1.** The original build used
+  `INTERVAL '7 days'/'30 days'`; on TIMESTAMPTZ that is calendar arithmetic in
+  the session timezone, so across spring-forward "7 days" = 167 real hours —
+  85 forecasts (1w/1mo only, gaps 167.0–167.96h / 719.1–719.9h) leaked past
+  the cutoff. Fix: horizons in absolute hours (`168 hours`, `720 hours`) +
+  `SET TimeZone='UTC'`. τ is defined as absolute duration everywhere.
+- **Base rates match to 0.000pp in all 7 domains** against the matched
+  population (resolved, ≥10 trades, first trade ≥1h pre-close) recomputed
+  independently of the ASOF join. NB: Step 8/Le base rates are NOT the right
+  comparator for τ=1h in hourly-heavy domains — only 13,126 of 76,181
+  ≥10-trade Crypto markets have any trade 1h pre-close (37.3% vs 40.7% yes).
+  This selection effect is structural, not a bug.
+- **Another substring quirk found:** `ARGINFLATIONM` (Argentina inflation) is
+  labeled **Sports** by Le's classifier (ARGI"NFL"ATIONM ⊃ NFL). Kept as-is —
+  reconciliation requires Le's exact labels.
+- τ=1h price mass in [0,0.1)∪(0.9,1] is 69.5% (short horizons pile at the
+  extremes, as expected); see `results/fig_price_hists.png`.
+- `results/spotcheck.txt`: PRES-2024-DJT, KXNFLGAME-25AUG23HOUDET-HOU,
+  HIGHAUS-23AUG01-B104.5, BTC-24AUG0917-B60500, AAAGASM-23DEC31-US-3.246 —
+  the selected row is programmatically verified to be the genuinely last trade
+  before cutoff at every τ (or correctly absent). Dump timestamps render in
+  ET (−04/−05); the "OK:" lines render UTC (+00:00) — same instants.
+
 ## Pipeline
 
 ```

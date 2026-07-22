@@ -12,12 +12,18 @@ import pandas as pd
 
 DERIVED = "E:/pm/kalshi-conformal/data/derived"
 
+# Horizons in ABSOLUTE HOURS. INTERVAL 'n days' on TIMESTAMPTZ is calendar
+# arithmetic in the session timezone: across a DST spring-forward, '7 days'
+# subtracts only 167 real hours, which let 85 trades leak past the cutoff
+# (caught by tests/test_forecasts.py::test_1_join_correctness). Hour units +
+# UTC session make the arithmetic purely absolute.
 HORIZONS = {"1h": "1 hour", "6h": "6 hours", "24h": "24 hours",
-            "1w": "7 days", "1mo": "30 days"}
+            "1w": "168 hours", "1mo": "720 hours"}
 
 con = duckdb.connect()
 con.sql("SET memory_limit='8GB'")
 con.sql("SET temp_directory='E:/pm/tmp'")
+con.sql("SET TimeZone='UTC'")
 
 frames = []
 for tau_name, tau_sql in HORIZONS.items():

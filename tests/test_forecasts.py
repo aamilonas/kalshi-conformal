@@ -48,18 +48,42 @@ def test_1_join_correctness(unf):
 
 # ── Test 2: base rates vs Step 8 ────────────────────────────────────
 def test_2_base_rates(unf, markets):
-    """Per-domain mean(outcome) at tau=1h must track the market-level base
-    rate of all resolved markets (Step 8's context table). The tau=1h set
-    only drops markets with no trade >=1h pre-close, so any big gap means a
-    broken join, not selection."""
-    base = markets.groupby("domain")["outcome"].mean()
-    got = unf[unf["tau"] == "1h"].groupby("domain")["outcome"].mean()
-    report = pd.DataFrame({"markets_base_rate": base, "forecasts_1h": got})
-    report["delta_pp"] = 100 * (report["forecasts_1h"] - report["markets_base_rate"])
-    print("\n" + report.round(4).to_string())
+    """Per-domain mean(outcome) at tau=1h (>=10-trade markets) must equal the
+    base rate of the MATCHED population — resolved >=10-trade markets whose
+    first trade is >=1h before close — recomputed independently from the base
+    tables (no ASOF join). Step 8's population differs structurally: in
+    Crypto/Finance most >=10-trade markets are hourlies with no trade 1h
+    pre-close (76,181 vs 13,126 reachable in Crypto), so their Step 8 rates
+    (40.7/37.7) CANNOT be matched at tau=1h (37.3/31.8) — a selection effect,
+    not a join bug; deltas vs the matched population are ~0.00pp everywhere."""
+    con = duckdb.connect()
+    con.sql("SET TimeZone='UTC'")
+    matched = con.sql(f"""
+        WITH resolved AS (
+          SELECT m.ticker, m.domain, m.close_time,
+                 CASE WHEN m.result='yes' THEN 1.0 ELSE 0.0 END AS y
+          FROM '{DERIVED}/markets_classified.parquet' m
+          WHERE m.result IN ('yes','no') AND m.close_time IS NOT NULL
+        ),
+        t AS (
+          SELECT ticker, COUNT(*) AS n, MIN(created_time) AS first_trade
+          FROM '{DERIVED}/trades_dedup.parquet' GROUP BY ticker
+        )
+        SELECT r.domain, 100 * AVG(y) AS matched_base_rate
+        FROM resolved r JOIN t ON t.ticker = r.ticker
+        WHERE t.n >= 10 AND t.first_trade < r.close_time - INTERVAL '1 hour'
+        GROUP BY r.domain
+    """).df().set_index("domain")["matched_base_rate"]
+    con.close()
+
+    got = 100 * (unf[(unf["tau"] == "1h") & (unf["n_trades_market"] >= 10)]
+                 .groupby("domain")["outcome"].mean())
+    report = pd.DataFrame({"matched_base_rate": matched, "forecasts_1h_ge10": got}).dropna()
+    report["delta_pp"] = report["forecasts_1h_ge10"] - report["matched_base_rate"]
+    print("\n" + report.round(3).to_string())
     for d in BIG_DOMAINS:
-        assert abs(report.loc[d, "delta_pp"]) < 1.5, \
-            f"{d}: base-rate delta {report.loc[d, 'delta_pp']:.2f}pp exceeds 1.5pp"
+        assert abs(report.loc[d, "delta_pp"]) < 1.0, \
+            f"{d}: base-rate delta {report.loc[d, 'delta_pp']:.2f}pp exceeds 1.0pp"
 
     # Outcome integrity: within the forecast file, a ticker's outcome must be
     # constant and equal to the market table's outcome for every tau.
@@ -118,15 +142,26 @@ def test_4_price_distributions(unf):
 
 # ── Test 5: hand spot-check of five markets ─────────────────────────
 def _pick_spotcheck_tickers(unf):
-    prefs = {"Politics": "PRES-2024-DJT", "Sports": None, "Weather": None,
-             "Crypto": None, "Finance": None}
+    # (domain, exact ticker or preferred prefixes). Prefix steering keeps the
+    # dump human-recognizable: without it, "Sports" alphabetically picks
+    # ARGINFLATIONM (Argentina inflation!, labeled Sports by Le's substring
+    # quirk ARGI"NFL"ATIONM) and "Weather" picks the malformed '-23MAR-T2'.
+    prefs = [("Politics", "PRES-2024-DJT", None),
+             ("Sports", None, ("KXNFLGAME", "NFLGAME", "NBAGAME")),
+             ("Weather", None, ("HIGHNY", "HIGHCHI", "HIGH")),
+             ("Crypto", None, ("BTCD", "BTC")),
+             ("Finance", None, ("INXD", "AAAGAS", "FED"))]
     have = unf[unf["tau"] == "1h"]
     picks = []
-    for domain, wanted in prefs.items():
+    for domain, exact, prefixes in prefs:
         cands = have[have["domain"] == domain]
-        if wanted is not None and (cands["ticker"] == wanted).any():
-            picks.append(wanted)
+        if exact is not None and (cands["ticker"] == exact).any():
+            picks.append(exact)
             continue
+        if prefixes:
+            pref = cands[cands["ticker"].str.startswith(prefixes)]
+            if len(pref):
+                cands = pref
         # prefer a modest, readable history
         mid = cands[(cands["n_trades_market"] >= 20) & (cands["n_trades_market"] <= 200)]
         pool = mid if len(mid) else cands
