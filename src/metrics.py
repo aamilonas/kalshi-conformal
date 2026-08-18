@@ -90,14 +90,16 @@ def reliability_bin_table(p, y, n_bins=10):
 def reliability_diagram(p, y, n_bins=10, ax=None, label=None):
     """Plot mean predicted vs observed per equal-mass bin, with y=x diagonal.
 
-    Returns (ax, bin_table). The diagonal is drawn only when this call
-    creates the axis, so overlaying several methods on one ax stays clean.
+    Returns (ax, bin_table). The diagonal and axis cosmetics are drawn only
+    on a pristine axis (created here or passed in empty), so overlaying
+    several methods on one ax stays clean.
     """
     import matplotlib.pyplot as plt
 
     table = reliability_bin_table(p, y, n_bins)
     if ax is None:
         _, ax = plt.subplots(figsize=(4.2, 4.2))
+    if len(ax.lines) == 0:
         ax.plot([0, 1], [0, 1], ls="--", lw=1, color="0.55", zorder=1)
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
