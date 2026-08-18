@@ -122,6 +122,15 @@ def test_split_conformal_mondrian_vs_marginal_groups():
     assert mcovA >= 0.88 and mcovB >= 0.88
 
 
-def test_adaptive_is_stubbed():
-    with pytest.raises(NotImplementedError):
-        Adaptive().fit(np.array([0.5]), np.array([1]))
+def test_adaptive_is_wired_to_aci():
+    # Phase 4 implemented this; it is now adaptive.ACI. The interface is
+    # deliberately different (ACI consumes outcomes in temporal order), so
+    # the check is that it is wired up, not that it quacks like the others.
+    from adaptive import ACI
+    assert Adaptive is ACI
+    rng = np.random.default_rng(0)
+    p = rng.uniform(0.05, 0.95, 500)
+    y = (rng.uniform(size=500) < p).astype(int)
+    out = Adaptive(alpha=0.1, gamma=0.01).fit(p, y).run(
+        p, y, order=np.arange(500))
+    assert out["sets"].shape == (500, 2)

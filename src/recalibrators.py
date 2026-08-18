@@ -219,14 +219,9 @@ class SplitConformal(Recalibrator):
         return s_label <= q
 
 
-class Adaptive(Recalibrator):
-    """Adaptive Conformal Inference (Gibbs & Candes 2021). Phase 4."""
-
-    def fit(self, p_cal, y_cal):
-        raise NotImplementedError("Phase 4")
-
-    def predict_proba(self, p_test):
-        raise NotImplementedError("Phase 4")
-
-    def predict_set(self, p_test, alpha):
-        raise NotImplementedError("Phase 4")
+# Adaptive Conformal Inference (Gibbs & Candes 2021) was stubbed here in
+# Phase 3 and implemented in Phase 4. It does not fit the fit/predict
+# interface above -- its threshold moves with each observed outcome, so it
+# needs the test labels in temporal order -- and therefore lives in its own
+# module rather than pretending to be a plain Recalibrator.
+from adaptive import ACI as Adaptive  # noqa: E402,F401
