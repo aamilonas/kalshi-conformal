@@ -142,3 +142,34 @@ to all downstream phases. Columns: `ticker, domain, tau, price, outcome,
 close_time, trade_time, n_trades_market, trade_size`;
 τ ∈ {1h, 6h, 24h, 1w, 1mo}; primary filters `0.05 ≤ price ≤ 0.95`,
 `n_trades_market ≥ 10` (unfiltered variant retained for robustness sweeps).
+
+## Phase 1 closed — 2026-08-18
+
+- Data frozen at tag **`phase1-done`** = commit `4f5d08b` (Step 10). Instruction
+  files tracked in `542986a`; this closing note is the last Phase 1 commit.
+- Full suite re-verified green 2026-08-18: **33/33 passed**; regenerated
+  spot-check dump and histograms byte-identical to committed versions.
+- Canonical row counts (post-DST-fix files on disk; these supersede the stale
+  Step 9 commit-message figures 241,376 / 947,225, which describe the pre-fix
+  build):
+
+| τ | `forecasts.parquet` | `forecasts_unfiltered.parquet` |
+| --- | ---: | ---: |
+| 1h | 68,111 | 428,582 |
+| 6h | 87,544 | 327,421 |
+| 24h | 67,282 | 157,177 |
+| 1w | 12,141 | 22,965 |
+| 1mo | 6,264 | 11,089 |
+| **total** | **241,342** | **947,234** |
+
+  (Filtered 1h < 6h is the price filter at work — 69.5% of τ=1h mass lies
+  outside [0.05, 0.95]; the unfiltered set is monotone decreasing in τ.)
+- Backup copies at **`C:\pm-backup\`** (2026-08-18, SHA256 verified == source):
+  - `forecasts.parquet` — 7,589,481 bytes —
+    `644C7CA4B020E174A86BA0EFB9A624F9C63C9551033C6BAC9C109FAE5AFD8DFF`
+  - `forecasts_unfiltered.parquet` — 35,485,974 bytes —
+    `D504C1CBDEF4A250D3159B151D9E98522059EAE1FFA2C8618BD474D7FF043FCC`
+- Remote: https://github.com/aamilonas/kalshi-conformal.git (`master` + tag pushed).
+- Downstream phases (see `PHASE2_3_METHODS.md`) read **only**
+  `data/derived/forecasts.parquet`, plus `forecasts_unfiltered.parquet` for
+  robustness sweeps. Raw archive retained at `E:\pm\becker-data\data.tar.zst`.
