@@ -67,3 +67,14 @@ the paper.
   `table_slopes_domain_time_9bin.csv`, `table_reliability_bins_M2.csv`,
   `table_binning_ci_M2.csv`, `table_M2_robustness_spec_split.csv`,
   `classify_crosscheck_disagreements.csv`.
+- 2026-08-18, Step 20 audit: **0 unmapped, 0 gaps.** All 37 real files in
+  `results/` are named in this document, and every file this document names
+  exists on disk. Six rows from the pre-Phase-4 backlog still carry an
+  UNMAPPED *paper slot* (they are registered here but have no assigned
+  section): `table_slopes_ours_5h.csv`, `table_slopes_domain_time_9bin.csv`,
+  `table_reliability_bins_M2.csv`, `table_binning_ci_M2.csv`,
+  `table_M2_robustness_spec_split.csv`,
+  `classify_crosscheck_disagreements.csv`. Clean-clone reproduction: 15 of 20
+  committed CSVs regenerate from the two forecasts parquets alone (max |delta|
+  1.9e-16); +3 with `le_time_bins.parquet`; the remaining 2 are Phase 1
+  outputs frozen at `phase1-done`.
