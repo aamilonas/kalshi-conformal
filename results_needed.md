@@ -38,9 +38,9 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 | `table_reliability_bins_M2.csv` | **UNMAPPED** | The numeric backing for `fig_reliability_M2`. Appendix B if the diagram ships. |
 | `table_binning_ci_M2.csv` | **UNMAPPED** | Clopper–Pearson intervals for histogram binning. Appendix B. |
 | `table_M2_robustness_spec_split.csv` | **UNMAPPED** | The original `cal < 2024-01-01` boundary kept as pooled-only robustness after that boundary proved infeasible (`notes.md`, Step 14 finding 1). Belongs in Robustness §7, and the boundary change itself needs a sentence in Methods. |
-| `table_wf_counts.csv` | **UNMAPPED** | Walk-forward cell counts. Appendix A. |
-| `wf_reliability_bins.csv` | **UNMAPPED** | Per-quarter walk-forward reliability bins. Appendix B. |
-| `table_reliability_bins_wf.csv` | **UNMAPPED** | Numeric backing for `fig_reliability_wf`, pooled over test quarters. Appendix B if that diagram ships. |
+| `table_wf_counts.csv` | **MAPPED** | Paper body — the sample table. Walk-forward sample sizes per quarter x domain x tau plus the `meets_200_test` flag. Assigned by Angelo 2026-08-18. |
+| `wf_reliability_bins.csv` | **MAPPED** | Appendix. Per-quarter walk-forward reliability bins. Assigned by Angelo 2026-08-18. |
+| `table_reliability_bins_wf.csv` | **MAPPED** | Appendix. Numeric backing for `fig_reliability_wf`, pooled over test quarters. Assigned by Angelo 2026-08-18. |
 | `captions.md` | not a paper artifact | Standalone captions for the Step 16 figures. Feeds the figure environments; ships no numbers of its own. |
 | `classify_crosscheck_disagreements.csv` | **UNMAPPED** | Classifier cross-check. Appendix C (domain-classifier rules) if anywhere. |
 | `notes.md` | not a paper artifact | Parked side observations. Feeds prose, ships nothing. |
@@ -56,7 +56,11 @@ the paper.
   above; the two rows the wiring list had as PLANNED for reliability and
   coverage-over-time are now EXISTS. Three files are left **UNMAPPED** for
   Angelo to slot or decline: `table_reliability_bins_wf.csv`,
-  `wf_reliability_bins.csv`, `table_wf_counts.csv`. `table_wf_counts.csv` is
-  load-bearing beyond an appendix: the gate-1 ruling requires every per-domain
-  number to travel with its `n_test` and quarter count, and that file is where
-  the counts and the `meets_200_test` flag live.
+  `wf_reliability_bins.csv`, `table_wf_counts.csv`.
+- 2026-08-18, gate 2: Angelo assigned all three. `table_wf_counts.csv` goes to
+  the **paper body** as the sample table; the two reliability-bin files go to
+  the **appendix**. Six files from the pre-Phase-4 backlog remain UNMAPPED and
+  still need a slot or a declination: `table_slopes_ours_5h.csv`,
+  `table_slopes_domain_time_9bin.csv`, `table_reliability_bins_M2.csv`,
+  `table_binning_ci_M2.csv`, `table_M2_robustness_spec_split.csv`,
+  `classify_crosscheck_disagreements.csv`.
