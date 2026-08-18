@@ -20,7 +20,8 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 | `table_M2_main.csv` | Early Results / sanity reference | **EXISTS** |
 | walk-forward long tidy CSV (quarters × domains × methods) | Results §6.1–6.3, Appendix A | **EXISTS** as `walk_forward_long.csv` (Step 15, commit `7ff8cfa`) |
 | `table_bootstrap_ci.csv` | Results §6.1–6.3 (significance for every headline delta) | **EXISTS** (Step 17) |
-| `table_robustness.csv` + bin-sensitivity outputs | Robustness §7 | **PLANNED** (Phase 5) |
+| `table_robustness.csv` + bin-sensitivity outputs | Robustness §7 | **EXISTS** (Step 18; bin sensitivity is the `bins5` / `bins20` variants inside it) |
+| `table_by_year.csv` | Robustness §7 (per-year stability) | **EXISTS** (Step 18, optional deliverable) |
 | `recalibration_table.csv` | Discussion, Conclusion, Appendix D | **PLANNED** (Phase 6) |
 | reliability diagrams | Results, Appendix B | **EXISTS**: `fig_reliability_M2.pdf` / `.png` (single-split) and `fig_reliability_wf.pdf` / `.png` (walk-forward, Politics/Sports x 24h/1w, pooled over test quarters; Step 16, commit `b821c16`). |
 | coverage-over-time figures | Results, Appendix B | **EXISTS** as `fig_H3_coverage_time.pdf` / `.png` (Step 16, commit `b821c16`) |

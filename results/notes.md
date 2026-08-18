@@ -162,3 +162,55 @@ respectively and borrow the pooled threshold where they must.
 **Lesson worth keeping:** coverage == 1.000 and average set size == 2.000 are
 not "good results", they are a null-threshold alarm. Any conformal table should
 be scanned for them before it is read.
+
+## 2026-08-18 — Step 18: do the qualitative conclusions survive the sweeps?
+
+Required verdict paragraph. Four variants at tau in {24h, 1w}, each compared
+to the primary over the INTERSECTION of their quarterly schedules (a filter
+changes how many markets clear the 1,000-row calibration floor, so schedules
+differ; `n_quarters` in `table_robustness.csv` reports what is left).
+`trades_ge_100` loses 6 of 14 quarters at tau=24h and `price_10_90` loses 2 of
+4 at tau=1w, which is the main limit on what these sweeps can say.
+
+**H1 — the sign of the deltas survives, with one exception.** Under
+`price_02_98`, `price_10_90`, `bins5` and `bins20`, no recalibrator beats the
+raw Kalshi price on Brier at either horizon; binning is worse the coarser it
+gets (binning5 - raw = +0.0066 at 24h, binning20 - raw = +0.0011). The one
+flip is **Platt under `trades_ge_100` at tau=24h, which beats raw by
+0.000287** (0.192692 vs 0.192979, n=15,423 over 8 quarters). Two things make
+this a weak exception rather than a counter-example. It is the same size as
+the primary's own uncertainty -- the Step 17 bootstrap puts primary Platt at
++0.000119 with a 95% CI of [-0.000004, +0.000244], i.e. a width of 0.00025 --
+and Platt is exactly the method whose interval straddles zero everywhere
+else. The consistent reading across Steps 16-18 is that **Platt ties the raw
+price and the flexible methods lose to it**; nothing here shows Platt
+winning. No bootstrap was run on the variants, so this flip has no interval
+of its own.
+
+**H2 — the direction does NOT survive one variant.** Mondrian sits closer to
+nominal than a marginal threshold under `price_10_90` (MAD 0.0198 -> 0.0140 at
+24h, 0.0250 -> 0.0211 at 1w) and `trades_ge_100` (0.0177 -> 0.0152; 0.0273 ->
+0.0209), reproducing the primary result. It **reverses under `price_02_98`**
+at both horizons: MAD 0.0123 -> 0.0144 at 24h and 0.0136 -> 0.0165 at 1w --
+i.e. with the widest price band, per-domain thresholds land further from
+nominal than one pooled threshold. Note that the marginal MAD under
+`price_02_98` (0.0123) is already the smallest of any variant: admitting
+prices in [0.02, 0.05) and (0.95, 0.98] adds a mass of near-certain markets
+that every domain gets right, which flattens the between-domain differences
+Mondrian exists to exploit while still costing it the variance of estimating
+six thresholds instead of one. **H2 should be stated as conditional on the
+price band, not as unconditional.**
+
+Two bugs were fixed in this step before these numbers were trusted, both
+recorded because they are the kind that fail silently:
+
+1. `walk_forward` emits `alpha` as the string `"NA"` for probability metrics
+   in memory, which only becomes NaN after a CSV round-trip. The sweep
+   filtered on `alpha.isna()`, so **every probability-metric row was silently
+   dropped** and the first `table_robustness.csv` had 168 rows of conformal
+   output instead of 1,290. Fixed with an explicit `pd.to_numeric(...,
+   errors="coerce")`.
+2. Because of (1) the H1 slice was empty, and an empty loop reported
+   "H1 sign HOLDS in every variant" -- a **vacuous pass**. The verdict now
+   raises if it has nothing to compare. A robustness check that cannot fail
+   is worse than no robustness check.

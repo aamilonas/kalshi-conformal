@@ -207,11 +207,18 @@ def _per_domain_sets(sink, w, tau, method, scope, sets, y, g, alpha):
 
 
 def run_window(w, tau, sink, static, bins_out, n_bins=10,
-               methods=None, alphas=None, want_rowlevel=True):
-    """One window: every method, both fit scopes, all three comparators."""
+               methods=None, alphas=None, want_rowlevel=True,
+               want_conformal=True, method_names=None):
+    """One window: every method, both fit scopes, all three comparators.
+
+    `method_names` renames the probability methods in the output (Step 18
+    reports HistogramBinning(5) as 'binning5'); `want_conformal=False`
+    skips the set-valued comparators for variants that cannot change them.
+    """
     assert_no_leakage(w)
     methods = methods or PROB_METHODS
     alphas = alphas or ALPHAS
+    names = method_names or {}
 
     p_cal = w.cal["price"].to_numpy()
     y_cal = w.cal["outcome"].to_numpy().astype(int)
@@ -231,9 +238,12 @@ def run_window(w, tau, sink, static, bins_out, n_bins=10,
         m = _make(name) if name != "binning10" else HistogramBinning(n_bins)
         m.fit(p_cal, y_cal)
         ph = m.predict_proba(p_test)
-        _per_domain_report(sink, w, tau, name, "pooled", ph, y_test, g_test)
+        out_name = names.get(name, name)
+        _per_domain_report(sink, w, tau, out_name, "pooled", ph, y_test,
+                           g_test)
         if want_rowlevel:
-            sink.rowlevel(w, tau, name, "pooled", tick, g_test, ph, y_test)
+            sink.rowlevel(w, tau, out_name, "pooled", tick, g_test, ph,
+                          y_test)
         if name in ("raw", "platt", "venn_abers"):
             for d in ("Politics", "Sports"):
                 s = g_test == d
@@ -255,15 +265,19 @@ def run_window(w, tau, sink, static, bins_out, n_bins=10,
             m = _make(name) if name != "binning10" else HistogramBinning(n_bins)
             m.fit(p_cal[ci], y_cal[ci])
             ph[ti] = m.predict_proba(p_test[ti])
-            sink.metrics(w, tau, name, "per_domain", d, ph[ti], y_test[ti])
+            sink.metrics(w, tau, names.get(name, name), "per_domain", d,
+                         ph[ti], y_test[ti])
         ok = ~np.isnan(ph)
         if ok.any():
-            sink.metrics(w, tau, name, "per_domain", "ALL", ph[ok],
+            out_name = names.get(name, name)
+            sink.metrics(w, tau, out_name, "per_domain", "ALL", ph[ok],
                          y_test[ok])
             if want_rowlevel:
-                sink.rowlevel(w, tau, name, "per_domain", tick[ok],
+                sink.rowlevel(w, tau, out_name, "per_domain", tick[ok],
                               g_test[ok], ph[ok], y_test[ok])
 
+    if not want_conformal:
+        return
     # ---- conformal: marginal (pooled) and mondrian (per-domain) -------
     marg = SplitConformal(Raw(), mode="marginal").fit(p_cal, y_cal)
     mond = SplitConformal(Raw(), mode="mondrian").fit(p_cal, y_cal,
@@ -320,8 +334,9 @@ def run_window(w, tau, sink, static, bins_out, n_bins=10,
                               y_test, out["sets"], TARGET_ALPHA)
 
 
-def run_tau(tau, sink, bins_out, **load_kw):
+def run_tau(tau, sink, bins_out, run_kw=None, **load_kw):
     """All windows for one horizon. Returns the window list (may be empty)."""
+    run_kw = run_kw or {}
     fc = load(tau, **load_kw)
     windows = build_windows(fc)
     if not windows:
@@ -338,7 +353,7 @@ def run_tau(tau, sink, bins_out, **load_kw):
         groups=w0.cal["domain"].to_numpy())
     static.cal_end_ = w0.cal_end
     for w in windows:
-        run_window(w, tau, sink, static, bins_out)
+        run_window(w, tau, sink, static, bins_out, **run_kw)
         print(f"    {w.quarter}  cal {len(w.cal):>6,} "
               f"({w.cal_start.date()}..{w.cal_end.date()})  "
               f"test {len(w.test):>6,}", flush=True)
