@@ -21,8 +21,11 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 | walk-forward long tidy CSV (quarters × domains × methods) | Results §6.1–6.3, Appendix A | **EXISTS** as `walk_forward_long.csv` (Step 15, commit `7ff8cfa`) |
 | `table_robustness.csv` + bin-sensitivity outputs | Robustness §7 | **PLANNED** (Phase 5) |
 | `recalibration_table.csv` | Discussion, Conclusion, Appendix D | **PLANNED** (Phase 6) |
-| reliability diagrams | Results, Appendix B | **EXISTS** in part: `fig_reliability_M2.pdf` / `.png` (single-split). Per-quarter and per-domain walk-forward diagrams **PLANNED**. |
-| coverage-over-time figures | Results, Appendix B | **PLANNED** |
+| reliability diagrams | Results, Appendix B | **EXISTS**: `fig_reliability_M2.pdf` / `.png` (single-split) and `fig_reliability_wf.pdf` / `.png` (walk-forward, Politics/Sports x 24h/1w, pooled over test quarters; Step 16, commit `b821c16`). |
+| coverage-over-time figures | Results, Appendix B | **EXISTS** as `fig_H3_coverage_time.pdf` / `.png` (Step 16, commit `b821c16`) |
+| `table_H1.csv` + `fig_H1_brier_delta.pdf` / `.png` | Results §6.1 (proper scores) | **EXISTS** (Step 16, commit `b821c16`) |
+| `table_H2.csv` + `fig_H2_coverage_by_domain.pdf` / `.png` | Results §6.2 (coverage allocation) | **EXISTS** (Step 16, commit `b821c16`) |
+| `table_H3.csv` | Results §6.3 (coverage over time) | **EXISTS** (Step 16, commit `b821c16`) |
 | `fig_price_hists.png` | Data §3.2 or Appendix | **EXISTS** |
 | `spotcheck.txt` | Data §3.2 or Appendix | **EXISTS** |
 
@@ -36,7 +39,9 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 | `table_binning_ci_M2.csv` | **UNMAPPED** | Clopper–Pearson intervals for histogram binning. Appendix B. |
 | `table_M2_robustness_spec_split.csv` | **UNMAPPED** | The original `cal < 2024-01-01` boundary kept as pooled-only robustness after that boundary proved infeasible (`notes.md`, Step 14 finding 1). Belongs in Robustness §7, and the boundary change itself needs a sentence in Methods. |
 | `table_wf_counts.csv` | **UNMAPPED** | Walk-forward cell counts. Appendix A. |
-| `wf_reliability_bins.csv` | **UNMAPPED** | Walk-forward reliability bins. Appendix B. |
+| `wf_reliability_bins.csv` | **UNMAPPED** | Per-quarter walk-forward reliability bins. Appendix B. |
+| `table_reliability_bins_wf.csv` | **UNMAPPED** | Numeric backing for `fig_reliability_wf`, pooled over test quarters. Appendix B if that diagram ships. |
+| `captions.md` | not a paper artifact | Standalone captions for the Step 16 figures. Feeds the figure environments; ships no numbers of its own. |
 | `classify_crosscheck_disagreements.csv` | **UNMAPPED** | Classifier cross-check. Appendix C (domain-classifier rules) if anywhere. |
 | `notes.md` | not a paper artifact | Parked side observations. Feeds prose, ships nothing. |
 
@@ -44,3 +49,14 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 
 Nothing else. Any new file must be added to this table before it can appear in
 the paper.
+
+## Audit log
+
+- 2026-08-18, Step 16 (`b821c16`): added the three H-tables and four figures
+  above; the two rows the wiring list had as PLANNED for reliability and
+  coverage-over-time are now EXISTS. Three files are left **UNMAPPED** for
+  Angelo to slot or decline: `table_reliability_bins_wf.csv`,
+  `wf_reliability_bins.csv`, `table_wf_counts.csv`. `table_wf_counts.csv` is
+  load-bearing beyond an appendix: the gate-1 ruling requires every per-domain
+  number to travel with its `n_test` and quarter count, and that file is where
+  the counts and the `meets_200_test` flag live.
