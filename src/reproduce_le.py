@@ -16,7 +16,7 @@ extraction whose trade counts match their matrix exactly.
 Inputs:
   data/derived/le_time_bins.parquet      (built by src/le_time_bins.py)
   data/derived/forecasts.parquet         (our frozen five-horizon grid)
-  E:/pm/prediction-market-calibration/supplementary/calibration_matrix_216.csv
+  <pm>/prediction-market-calibration/supplementary/calibration_matrix_216.csv
 
 Outputs:
   results/table_reproduction.csv             216 cells: ours vs Le, + size_bin
@@ -36,10 +36,7 @@ from sklearn.linear_model import LogisticRegression
 
 from le_time_bins import BIN_LABELS, DOMAINS, SIZE_LABELS
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
-RESULTS = "E:/pm/kalshi-conformal/results"
-LE_MATRIX = ("E:/pm/prediction-market-calibration/supplementary/"
-             "calibration_matrix_216.csv")
+from paths import DERIVED, RESULTS, LE_MATRIX
 C_REG = 10.0
 CELL_MIN = 200
 COLORS = {"Politics": "#D62728", "Sports": "#1F77B4", "Weather": "#2CA02C",

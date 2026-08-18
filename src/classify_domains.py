@@ -21,6 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from le_classify import CATEGORY_SQL, get_group  # noqa: E402
+from paths import (BECKER_CATEGORIES, DERIVED, RESULTS,  # noqa: E402
+                   TMP)
 
 DOMAINS = ["Sports", "Crypto", "Politics", "Finance", "Weather", "Entertainment"]
 
@@ -55,10 +57,10 @@ def main():
     import importlib.util
     import pandas as pd
 
-    derived = "E:/pm/kalshi-conformal/data/derived"
+    derived = DERIVED
     con = duckdb.connect()
     con.sql("SET memory_limit='8GB'")
-    con.sql("SET temp_directory='E:/pm/tmp'")
+    con.sql(f"SET temp_directory='{TMP}'")
 
     # Classify on distinct prefixes (cheap), then join back in SQL.
     prefixes = con.sql(f"""
@@ -95,7 +97,7 @@ def main():
     # ── Cross-check vs Becker's get_group() on the same prefixes ──
     spec = importlib.util.spec_from_file_location(
         "becker_categories",
-        "E:/pm/prediction-market-analysis/src/analysis/kalshi/util/categories.py",
+        BECKER_CATEGORIES,
     )
     becker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(becker)
@@ -125,7 +127,7 @@ def main():
     print("\nDisagreement % by our domain label:")
     print(per_domain.to_string())
 
-    dis.to_csv("E:/pm/kalshi-conformal/results/classify_crosscheck_disagreements.csv", index=False)
+    dis.to_csv(f"{RESULTS}/classify_crosscheck_disagreements.csv", index=False)
     print("\nSaved results/classify_crosscheck_disagreements.csv")
 
 

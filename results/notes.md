@@ -42,3 +42,67 @@ claims are about, and possibly show both.
    improves all three metrics (0.17876 vs 0.18017 Brier). Consistent with
    note above: trade-level underconfidence (slope 1.833) does not manifest
    in market-level 24h snapshots. A genuine null, not a failure.
+
+## 2026-08-18 — Phase 4 prep: Step 14 re-verified on a second platform
+
+Phases 0-3 were built on Windows; Phase 4-5 runs on macOS off the same
+exFAT drive (`.venv` is a Windows venv and cannot be used; the pinned
+`requirements.txt` was installed into a CPython 3.13.15 venv instead, and
+`src/paths.py` replaced the 22 hardcoded `E:/pm/...` paths with
+repo-root-relative ones). Both frozen parquets hash-match the README
+(`644C7CA4...`, `D504C1CB...`). Full suite 53/53 green after the rewiring.
+
+Re-running `run_single_split.py` reproduces Step 14 exactly:
+`table_M2_main.csv`, `table_binning_ci_M2.csv` and
+`table_reliability_bins_M2.csv` agree to <= 2e-16 on every numeric cell,
+labels identical. Exit-test verdicts identical (0.9223 / Politics null /
+spread 0.077 -> 0.052).
+
+**One cell does not reproduce, and it is a warning about ECE.**
+`table_M2_robustness_spec_split.csv`, VennAbers/Finance/ECE: 0.018486
+(Windows) vs 0.018201 (macOS), |diff| 2.85e-04. Cause: Venn-Abers output is
+massively tied — 2,894 Finance test rows take only **33 distinct** p-hat
+values, and **44% of rows sit exactly on an interior equal-mass bin edge**.
+A 1-ulp relative jitter of p-hat moves this ECE by up to **5.7e-03**, twenty
+times the observed cross-platform difference. So the difference is numerical
+dust, but the implication is not: **ECE computed with equal-mass bins on
+Venn-Abers output is not stable below ~5e-03.** Phase 4 must not read ECE
+deltas for VennAbers (or HistogramBinning, same tie structure) finer than
+that, and Step 20's clean-clone comparison needs a tolerance on those cells
+rather than exact equality.
+
+## 2026-08-18 — Phase 4 prep: exit test 1 overcoverage is drift, not domain mix
+
+The Step 14 story (DATA_GUIDE 6.3) is that pooled marginal coverage 0.9223
+decomposes into 0.9053 in-sample + 0.0170 of "H1->H2 2025 temporal shift".
+The obvious alternative explanation was never tested: the domain mix moves
+violently across the 2025-07-01 boundary — Sports is 8.0% of the
+calibration fold and 73.7% of the test fold — so the gap could be
+composition, not drift. It is not.
+
+Verified independently of `run_single_split.py`, at qhat = 0.700
+(rank 25,779 / 28,642):
+
+  P_cal(s <  qhat) = 0.8988      P_cal(s == qhat) = 0.0065  (cents-grid ties)
+  P_cal(s <= qhat) = 0.9053      P_test(s <= qhat) = 0.9223
+
+Oaxaca-style split of the +0.0170:
+
+  composition (domain mix)   +0.0013
+  within-domain drift        +0.0163      <- 96% of the gap
+  interaction                -0.0006
+
+Reweighting the test fold to the calibration fold's domain mix leaves
+coverage at 0.9216 (vs 0.9223 observed). The mix barely matters because
+calibration-fold coverage is already similar across domains (0.879-0.916).
+
+Direction is consistent: five of six domains drift the same way
+(Sports +0.016, Politics +0.030, Finance +0.017, Weather +0.019,
+Entertainment +0.016); only Crypto moves against it (-0.022, and Crypto is
+the one domain that was *under*-covered at 0.857). A systematic, near-common
+shift in the score distribution is exactly what ACI is designed to track,
+so the Phase 4 H3 motivation stands on a verified premise rather than an
+assumed one.
+
+Leakage re-asserted independently: cal max close_time 2025-06-30 21:07:13Z
+< test min 2025-07-01 03:52:32Z; 28,642 + 31,465 = 60,107 rows, none lost.

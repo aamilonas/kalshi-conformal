@@ -7,12 +7,11 @@ import os
 
 import duckdb
 
-DATA = "E:/pm/becker-data/data"
-OUT = "E:/pm/kalshi-conformal/data/derived"
+from paths import BECKER_DATA as DATA, DERIVED as OUT, TMP
 
 con = duckdb.connect()
 con.sql("SET memory_limit='8GB'")
-con.sql("SET temp_directory='E:/pm/tmp'")
+con.sql(f"SET temp_directory='{TMP}'")
 
 
 def build(name, src_glob, key):

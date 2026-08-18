@@ -10,7 +10,7 @@ Outputs:
 import duckdb
 import pandas as pd
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
+from paths import DERIVED, TMP
 
 # Horizons in ABSOLUTE HOURS. INTERVAL 'n days' on TIMESTAMPTZ is calendar
 # arithmetic in the session timezone: across a DST spring-forward, '7 days'
@@ -22,7 +22,7 @@ HORIZONS = {"1h": "1 hour", "6h": "6 hours", "24h": "24 hours",
 
 con = duckdb.connect()
 con.sql("SET memory_limit='8GB'")
-con.sql("SET temp_directory='E:/pm/tmp'")
+con.sql(f"SET temp_directory='{TMP}'")
 con.sql("SET TimeZone='UTC'")
 
 frames = []

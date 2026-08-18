@@ -21,8 +21,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from classify_domains import DOMAINS, le_group  # noqa: E402
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
-RESULTS = "E:/pm/kalshi-conformal/results"
+from paths import DERIVED, RESULTS, TMP  # noqa: E402
 DATE_CUTOFF = "2025-12-31T23:59:59Z"  # Le's config.DATE_CUTOFF
 
 # Le (2026) Table 1 targets (from the phase instructions).
@@ -34,7 +33,7 @@ LE = {
 
 con = duckdb.connect()
 con.sql("SET memory_limit='8GB'")
-con.sql("SET temp_directory='E:/pm/tmp'")
+con.sql(f"SET temp_directory='{TMP}'")
 
 # ── Le's `resolved` query, verbatim logic, on deduped tables ──
 resolved = con.sql(f"""

@@ -22,7 +22,7 @@ markets_classified.parquet, whose `domain` column is Le's get_group()
 """
 import duckdb
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
+from paths import DERIVED, TMP
 OUT = f"{DERIVED}/le_time_bins.parquet"
 
 # Le's src/config.py TIME_BINS / SIZE_BINS, verbatim.
@@ -63,7 +63,7 @@ def size_bin_sql():
 if __name__ == "__main__":
     con = duckdb.connect()
     con.sql("SET memory_limit='8GB'")
-    con.sql("SET temp_directory='E:/pm/tmp'")
+    con.sql(f"SET temp_directory='{TMP}'")
     con.sql("SET TimeZone='UTC'")
 
     tb, sb = time_bin_sql(), size_bin_sql()

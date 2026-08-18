@@ -7,11 +7,11 @@ Verifies the three known silent killers before anything is built:
 """
 import duckdb
 
-DATA = "E:/pm/becker-data/data"
+from paths import BECKER_DATA as DATA, TMP
 
 con = duckdb.connect()
 con.sql("SET memory_limit='8GB'")
-con.sql("SET temp_directory='E:/pm/tmp'")
+con.sql(f"SET temp_directory='{TMP}'")
 
 print("=" * 70)
 print("KALSHI MARKETS schema")

@@ -34,8 +34,7 @@ from metrics import brier, log_loss, ece, coverage, avg_set_size, \
 from recalibrators import (HistogramBinning, Isotonic, Platt, Raw,
                            SplitConformal, VennAbers)
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
-RESULTS = "E:/pm/kalshi-conformal/results"
+from paths import DERIVED, RESULTS
 DOMAINS = ["Sports", "Crypto", "Politics", "Finance", "Weather", "Entertainment"]
 TAU = "24h"
 PRIMARY_BOUNDARY = pd.Timestamp("2025-07-01", tz="UTC")

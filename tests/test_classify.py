@@ -12,6 +12,7 @@ import importlib.util
 import pytest
 
 from classify_domains import classify, extract_cat_prefix, le_group
+from paths import LE_CLASSIFY
 
 # (ticker, event_ticker, expected 7-way domain)
 KNOWN = [
@@ -70,7 +71,7 @@ def test_prefix_extraction():
 
 def _load_le_original():
     spec = importlib.util.spec_from_file_location(
-        "le_original", "E:/pm/prediction-market-calibration/src/classify.py")
+        "le_original", LE_CLASSIFY)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

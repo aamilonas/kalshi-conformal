@@ -5,3 +5,6 @@ lit/*.pdf
 __pycache__/
 .pytest_cache/
 E:/pm/tmp/
+.venv-mac/
+._*
+.DS_Store

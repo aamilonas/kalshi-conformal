@@ -9,8 +9,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-DERIVED = "E:/pm/kalshi-conformal/data/derived"
-RESULTS = Path("E:/pm/kalshi-conformal/results")
+from paths import DERIVED
+from paths import RESULTS as _RESULTS
+
+RESULTS = Path(_RESULTS)
 
 TAUS = {"1h": pd.Timedelta("1h"), "6h": pd.Timedelta("6h"),
         "24h": pd.Timedelta("24h"), "1w": pd.Timedelta("7D"),
