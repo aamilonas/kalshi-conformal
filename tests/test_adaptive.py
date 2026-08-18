@@ -15,7 +15,8 @@ stop tracking outcomes.
 import numpy as np
 import pytest
 
-from adaptive import ACI, ALPHA_CLIP, StaticOnce, conformal_qhat
+from adaptive import (ACI, ALPHA_CLIP, StaticOnce, _scores_from_labels
+                      as _scores, conformal_qhat)
 
 SEED = 20260818
 
@@ -153,3 +154,70 @@ def test_aci_alpha_updates_only_from_past():
     alt = ACI(gamma=0.02).fit(p_cal, y_cal).run(p_te, y2, order=order)
     assert np.array_equal(base["alpha_t"][:301], alt["alpha_t"][:301])
     assert not np.array_equal(base["alpha_t"][301:], alt["alpha_t"][301:])
+
+
+def test_tiny_group_falls_back_instead_of_covering_everything():
+    """Regression: a Mondrian group too small to resolve alpha must NOT
+    emit the trivial set {0,1} for every point.
+
+    Found in Step 16: the first walk-forward calibration window had 3
+    Sports and 1 Politics markets at tau=24h, so their frozen thresholds
+    were +inf and 25.3% of the tau=24h test rows were 'covered' by
+    construction. That turned 'these products did not exist yet' into an
+    apparent upward coverage drift.
+    """
+    rng = np.random.default_rng(SEED)
+    n_big = 2000
+    p_big, y_big = _synth(n_big, rng)
+    p_tiny, y_tiny = _synth(3, rng)              # 3 markets: rank 4 > 3
+    p_cal = np.concatenate([p_big, p_tiny])
+    y_cal = np.concatenate([y_big, y_tiny])
+    g_cal = np.array(["Big"] * n_big + ["Tiny"] * 3)
+
+    assert conformal_qhat(np.sort(_scores(p_tiny, y_tiny)), 0.1) == np.inf
+
+    st = StaticOnce(alpha=0.1).fit(p_cal, y_cal, groups=g_cal)
+    q_tiny = st.qhat("Tiny")
+    assert np.isfinite(q_tiny), "tiny group still returns an infinite threshold"
+    assert q_tiny == conformal_qhat(st.pooled_scores_, 0.1)
+    assert st.fellback_.get("Tiny") == 3
+
+    p_te, y_te = _synth(400, rng)
+    g_te = np.array(["Tiny"] * 400)
+    sets = st.predict_set(p_te, groups=g_te)
+    assert not sets.all(), "every set is {0,1} — the artifact is still there"
+    cov = _cov(sets, y_te)
+    assert 0.85 <= cov <= 0.95, f"fallback coverage {cov:.3f} off nominal"
+
+
+def test_aci_tiny_group_falls_back():
+    rng = np.random.default_rng(SEED + 5)
+    p_big, y_big = _synth(2000, rng)
+    p_tiny, y_tiny = _synth(3, rng)
+    p_cal = np.concatenate([p_big, p_tiny])
+    y_cal = np.concatenate([y_big, y_tiny])
+    g_cal = np.array(["Big"] * 2000 + ["Tiny"] * 3)
+    p_te, y_te = _synth(600, rng)
+    g_te = np.array(["Tiny"] * 600)
+    out = (ACI(alpha=0.1, gamma=0.005, mode="mondrian")
+           .fit(p_cal, y_cal, groups=g_cal)
+           .run(p_te, y_te, groups=g_te, order=np.arange(600)))
+    assert not out["sets"].all(), "ACI still covering everything by construction"
+    assert abs(float(out["covered"].mean()) - 0.9) <= 0.05
+
+
+def test_split_conformal_mondrian_tiny_group_falls_back():
+    from recalibrators import SplitConformal
+    rng = np.random.default_rng(SEED + 6)
+    p_big, y_big = _synth(2000, rng)
+    p_tiny, y_tiny = _synth(3, rng)
+    p_cal = np.concatenate([p_big, p_tiny])
+    y_cal = np.concatenate([y_big, y_tiny])
+    g_cal = np.array(["Big"] * 2000 + ["Tiny"] * 3)
+    p_te, y_te = _synth(400, rng)
+    g_te = np.array(["Tiny"] * 400)
+    m = SplitConformal(mode="mondrian").fit(p_cal, y_cal, groups=g_cal)
+    sets = m.predict_set(p_te, 0.1, groups=g_te)
+    assert not sets.all(), "SplitConformal mondrian still emits {0,1}"
+    assert m.fellback_.get("Tiny") == 3
+    assert 0.85 <= _cov(sets, y_te) <= 0.95

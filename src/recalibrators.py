@@ -164,10 +164,15 @@ class SplitConformal(Recalibrator):
     quantile of calibration scores; test set = {k : 1 - p_hat_k <= q_hat}.
 
     mode='marginal': one pooled q_hat. mode='mondrian': one q_hat per group
-    (domain); a test group unseen in calibration falls back to the pooled
-    threshold. Note: the base method is fit on the same calibration fold
-    its scores are computed on; exact validity holds for bases that need no
-    fitting (Raw, the Step 14 default).
+    (domain). A test group falls back to the pooled threshold when it is
+    unseen in calibration OR when its own calibration set is too small to
+    resolve the requested level -- ceil((n+1)(1-alpha)) > n makes q_hat
+    infinite, which would silently emit the trivial set {0, 1} for every
+    point in that group and report coverage 1.000 as if it were an
+    achievement. Falling back is also what a deployer would actually do.
+    Note: the base method is fit on the same calibration fold its scores
+    are computed on; exact validity holds for bases that need no fitting
+    (Raw, the Step 14 default).
     """
 
     def __init__(self, base=None, mode="marginal"):
@@ -209,10 +214,15 @@ class SplitConformal(Recalibrator):
             g = np.asarray(groups)
             q = np.empty(len(phat))
             fallback = self._qhat(self.scores_, alpha)
+            self.fellback_ = {}
             for k in np.unique(g):
                 sc = self.group_scores_.get(k)
-                q[g == k] = self._qhat(sc, alpha) if sc is not None and len(sc) \
-                    else fallback
+                qk = self._qhat(sc, alpha) if sc is not None and len(sc) \
+                    else np.inf
+                if not np.isfinite(qk):
+                    qk = fallback
+                    self.fellback_[k] = 0 if sc is None else len(sc)
+                q[g == k] = qk
             q = q[:, None]
         else:
             q = self._qhat(self.scores_, alpha)

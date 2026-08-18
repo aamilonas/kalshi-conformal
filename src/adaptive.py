@@ -96,15 +96,32 @@ class StaticOnce:
         self.pooled_scores_ = np.sort(scores)
         self.group_scores_ = {k: np.sort(scores[g == k]) for k in np.unique(g)}
         self.cal_end_ = None          # set by the driver for provenance
+        self.fellback_ = {}
         self._fitted = True
         return self
 
+    def n_cal(self, group):
+        sc = self.group_scores_.get(group)
+        return 0 if sc is None else len(sc)
+
     def qhat(self, group, alpha=None):
+        """Group threshold, falling back to pooled when it is not finite.
+
+        A group whose calibration set is too small to resolve `alpha`
+        yields q_hat = +inf, i.e. the trivial set {0, 1} for every point
+        and coverage 1.000 by construction. That is not a threshold, and
+        reporting it as one would turn 'this domain did not exist yet'
+        into 'static-once over-covers'. Fall back to pooled instead --
+        which is also what a deployer holding one global threshold would
+        do -- and record it in `fellback_`.
+        """
         a = self.alpha if alpha is None else alpha
         sc = self.group_scores_.get(group)
-        if sc is None or len(sc) == 0:
-            sc = self.pooled_scores_
-        return conformal_qhat(sc, a)
+        q = conformal_qhat(sc, a) if sc is not None and len(sc) else np.inf
+        if not np.isfinite(q):
+            self.fellback_[group] = self.n_cal(group)
+            return conformal_qhat(self.pooled_scores_, a)
+        return q
 
     def predict_set(self, p_test, groups, alpha=None):
         s = _label_scores(p_test)
@@ -140,11 +157,20 @@ class ACI:
                                   for k in np.unique(g)}
         else:
             self.group_scores_ = {}
+        self.fellback_ = {}
         return self
 
-    def _scores_for(self, key):
+    def _scores_for(self, key, alpha):
+        """Group scores, or pooled when the group cannot resolve `alpha`.
+
+        Same rule as StaticOnce.qhat -- see there for why an infinite
+        threshold must not be reported as coverage.
+        """
         sc = self.group_scores_.get(key)
         if sc is None or len(sc) == 0:
+            return self.pooled_scores_
+        if not np.isfinite(conformal_qhat(sc, alpha)):
+            self.fellback_[key] = len(sc)
             return self.pooled_scores_
         return sc
 
@@ -187,7 +213,7 @@ class ACI:
             elif a >= 1.0:
                 st = np.array([False, False])
             else:
-                q = conformal_qhat(self._scores_for(key), a)
+                q = conformal_qhat(self._scores_for(key, a), a)
                 st = s_lab[i] <= q
             sets[i] = st
             err = 0.0 if st[y_test[i]] else 1.0

@@ -106,3 +106,59 @@ assumed one.
 
 Leakage re-asserted independently: cal max close_time 2025-06-30 21:07:13Z
 < test min 2025-07-01 03:52:32Z; 28,642 + 31,465 = 60,107 rows, none lost.
+
+## 2026-08-18 — Step 16: a degenerate Mondrian threshold was inflating coverage
+
+**Found while eyeballing the first draft of fig_H3_coverage_time**, where the
+static-once curves for Sports and Politics sat at exactly 1.000 across every
+quarter. Coverage of exactly 1.000 with average set size exactly 2.000 is the
+signature of "every prediction set is {0, 1}", not of a well-behaved policy.
+
+**Mechanism.** A Mondrian split-conformal threshold is the
+`ceil((n+1)(1-alpha))/n` empirical quantile of that group's calibration
+scores. When a group's calibration set is smaller than that rank demands --
+`ceil((n+1)(1-alpha)) > n`, i.e. n < 9 at alpha=0.1 and n < 19 at alpha=0.05 --
+no such order statistic exists and q_hat is `+inf`, so every label is admitted.
+The Phase 3 `SplitConformal` fell back to the pooled threshold for a group
+*absent* from calibration (n = 0) but not for a group merely *too small*
+(n = 1, 2, 3), which is strictly worse. `StaticOnce` and `ACI` inherited the
+same hole.
+
+**Blast radius, measured before fixing anything.**
+
+* Walk-forward static-once: the frozen 2022Q2 window had Sports n_cal=3 and
+  Politics n_cal=1, so **25.3% of tau=24h test rows (9,704 / 38,346) and 35.8%
+  at tau=6h (17,329 / 48,360) were covered by construction.** Pooled
+  static-once coverage in 2025Q3 read 0.9612; the true value is 0.9132.
+* Rolling Mondrian: 14 windows affected across 24h and 6h, all with tiny
+  n_test (1-30 rows), so the pooled rolling numbers moved by <= 0.003.
+* **The gate-1 report was wrong because of this.** It described a
+  two-directional pattern -- static-once drifting *up* at tau=24h and *down* at
+  tau=1w. The tau=1w decay is real (0 infinite thresholds there; static-once
+  falls to 0.8334 by 2025Q3). The tau=24h "upward drift" was the artifact and
+  largely disappears once fixed: 2025Q1/Q2/Q3 go 0.9086/0.9344/0.9612 ->
+  0.8973/0.8985/0.9132.
+* Phase 3 was affected too: `table_M2_robustness_spec_split.csv` (the
+  cal < 2024-01-01 boundary, where Sports n_cal=3 and Politics n_cal=14) had
+  Conformal-mondrian Sports coverage 1.000 / set size 2.000 at all three
+  alphas, dragging pooled coverage to 0.9547 at alpha=0.1. Corrected values:
+  Sports 0.9280, pooled 0.9186. The regenerated CSV is committed. **No Phase 3
+  exit-test verdict changes** -- all three run on the primary 2025-07-01 split,
+  whose smallest per-domain calibration set is 739, and that table reproduces
+  to 1e-16.
+
+**Fix.** Fall back to the pooled threshold whenever a group's own threshold is
+not finite, in `SplitConformal.predict_set`, `StaticOnce.qhat` and
+`ACI._scores_for`; record the fallback in `fellback_`. This is also what a
+deployer holding one global threshold would actually do. Three regression
+tests now construct a 3-market group and assert the sets are not all {0, 1}.
+
+**Provenance is now in the output.** `table_H3.csv` carries
+`static_once_n_cal_frozen` and `static_once_borrowed_pooled` per (tau, domain),
+so a reader can see that the tau=24h static-once curves for Politics, Sports,
+Crypto and Entertainment rest on 1, 3, 0 and 25 calibration markets
+respectively and borrow the pooled threshold where they must.
+
+**Lesson worth keeping:** coverage == 1.000 and average set size == 2.000 are
+not "good results", they are a null-threshold alarm. Any conformal table should
+be scanned for them before it is read.

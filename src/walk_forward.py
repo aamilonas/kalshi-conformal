@@ -256,13 +256,6 @@ def run_window(w, tau, sink, static, bins_out, n_bins=10,
             m.fit(p_cal[ci], y_cal[ci])
             ph[ti] = m.predict_proba(p_test[ti])
             sink.metrics(w, tau, name, "per_domain", d, ph[ti], y_test[ti])
-            if name == "binning10" and hasattr(m, "bin_table"):
-                bt = m.bin_table()
-                bt.insert(0, "domain", d)
-                bt.insert(0, "tau", tau)
-                bt.insert(0, "test_quarter", w.quarter)
-                bt.insert(0, "kind", "binning_cal")
-                bins_out.append(bt)
         ok = ~np.isnan(ph)
         if ok.any():
             sink.metrics(w, tau, name, "per_domain", "ALL", ph[ok],
@@ -298,6 +291,16 @@ def run_window(w, tau, sink, static, bins_out, n_bins=10,
             if want_rowlevel and a == TARGET_ALPHA:
                 sink.rowlevel(w, tau, "static_once", "per_domain", tick,
                               g_test, p_test, y_test, ss, a)
+        # Provenance for H3: how much calibration data the FROZEN threshold
+        # for each domain rests on, and whether it was estimable at all.
+        # A domain that did not exist in the first window falls back to the
+        # pooled threshold; without this column that is invisible.
+        for d in DOMAINS:
+            sink._emit(w, tau, "static_once", "per_domain", d, "NA",
+                       [("n_cal_frozen", float(static.n_cal(d))),
+                        ("fellback_to_pooled",
+                         float(d in getattr(static, "fellback_", {})))],
+                       int((g_test == d).sum()))
 
     # ---- H3 comparator 3: ACI, in close_time order --------------------
     order = np.argsort(w.test["close_time"].to_numpy(), kind="stable")
@@ -380,9 +383,10 @@ def main(argv=None):
     print("Saved table_wf_counts.csv")
 
     if bins_out:
-        pd.concat(bins_out, ignore_index=True).to_csv(
-            f"{RESULTS}/wf_reliability_bins.csv", index=False)
-        print("Saved wf_reliability_bins.csv")
+        rb = pd.concat(bins_out, ignore_index=True)
+        assert not rb.isna().any().any(), "reliability bins have holes"
+        rb.to_csv(f"{RESULTS}/wf_reliability_bins.csv", index=False)
+        print(f"Saved wf_reliability_bins.csv ({len(rb):,} rows)")
 
     preds = pd.concat(sink.preds, ignore_index=True)
     preds.to_parquet(f"{DERIVED}/wf_predictions.parquet", index=False)
