@@ -19,6 +19,7 @@ list gives it no paper slot; Angelo assigns a slot or declares it out of scope.
 | `fig_reproduction.pdf` | Data §3.4 (fills `[REPRODUCTION FIGURE]`) | **EXISTS** |
 | `table_M2_main.csv` | Early Results / sanity reference | **EXISTS** |
 | walk-forward long tidy CSV (quarters × domains × methods) | Results §6.1–6.3, Appendix A | **EXISTS** as `walk_forward_long.csv` (Step 15, commit `7ff8cfa`) |
+| `table_bootstrap_ci.csv` | Results §6.1–6.3 (significance for every headline delta) | **EXISTS** (Step 17) |
 | `table_robustness.csv` + bin-sensitivity outputs | Robustness §7 | **PLANNED** (Phase 5) |
 | `recalibration_table.csv` | Discussion, Conclusion, Appendix D | **PLANNED** (Phase 6) |
 | reliability diagrams | Results, Appendix B | **EXISTS**: `fig_reliability_M2.pdf` / `.png` (single-split) and `fig_reliability_wf.pdf` / `.png` (walk-forward, Politics/Sports x 24h/1w, pooled over test quarters; Step 16, commit `b821c16`). |
